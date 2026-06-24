@@ -1,32 +1,47 @@
-# This is a basic workflow that is manually triggered
+  name: IaCBicepDeployment
 
-name: Manual workflow
+  on:
+    workflow_dispatch:
 
-# Controls when the action will run. Workflow runs when manually triggered using the UI
-# or API.
-on:
-  workflow_dispatch:
-    # Inputs the workflow accepts.
-    inputs:
-      name:
-        # Friendly description to be shown in the UI instead of 'name'
-        description: 'Person to greet'
-        # Default value if no value is explicitly provided
-        default: 'World'
-        # Input has to be provided for the workflow to run
-        required: true
-        # The data type of the input
-        type: string
+  permissions:
+    id-token: write
+    contents: read
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "greet"
-  greet:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+  # A workflow run is made up of one or more jobs that can run sequentially or in parallel
+  jobs:
+    # This workflow contains a single job called "deployVNet"
+    deployVNet:
+      # The type of runner that the job will run on
+      runs-on: ubuntu-latest
+      environment:
+        name: IaC
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-    # Runs a single command using the runners shell
-    - name: Send greeting
-      run: echo "Hello ${{ inputs.name }}"
+      # Steps represent a sequence of tasks that will be executed as part of the job
+      steps:
+        - name: RepoCheckout
+          uses: actions/checkout@v6.0.0
+          
+        - name: Azure Login
+          uses: Azure/login@v3
+          with:
+            client-id: ${{ secrets.CLIENTID }}
+            tenant-id: ${{ secrets.TENANTID }}
+            subscription-id: ${{ secrets.SUBSCRIPTIONID }}
+
+        - name: DeployBicep
+          uses: Azure/bicep-deploy@v2.3.0
+          with:
+            # Specifies the execution type, which can be either 'deployment' or 'deploymentStack'.
+            type: deployment
+            # Specifies the Azure subscription ID to which the deployment will be applied.
+            subscription-id: ${{ secrets.SUBSCRIPTIONID }}
+            # Specifies the operation to perform. For deployment, choose from 'create', 'validate', 'whatIf'. For deploymentStack, choose from 'create', 'delete', 'validate'.
+            operation: create
+            # Specifies the scope of the deployment or deploymentStack. For deployment, choose from 'resourceGroup', 'subscription', 'managementGroup', 'tenant'. For deploymentStack, choose from 'resourceGroup', 'subscription', 'managementGroup'.
+            scope: resourceGroup 
+            # Specifies the name of the deployment or deploymentStack.
+            name: iacDeployGithub
+            # Specifies the resource group name. Required if the 'scope' parameter is 'resourceGroup'.
+            resource-group-name: iac-sp-Maximilian
+            # Specifies the path to the template file.
+            template-file: ./VNet.bicep
